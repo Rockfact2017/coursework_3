@@ -1,8 +1,12 @@
 import json
 import datetime
+import pathlib
+
+# Получение текущего рабочего каталога
+cwd = pathlib.Path.cwd()
 
 # Загрузка данных из файла
-with open('/Users/artem/PycharmProjects/coursework_3/prg/operations.json') as f:
+with open(cwd / 'operations.json') as f:
     operations = json.load(f)
 
 # Фильтрация выполненных операций
@@ -20,11 +24,14 @@ for operation in executed_operations[:5]:
     date = datetime.datetime.strptime(operation['date'], '%Y-%m-%dT%H:%M:%S.%f').strftime('%d.%m.%Y')
 
     # Маскировка номера карты и счета
-    from_masked = 'XXXX XX** **** XXXX' if 'from' in operation and operation['from'] else ''
-    to_masked = '**XXXX' if 'to' in operation and operation['to'] else ''
+    from_masked = operation['from'][-4:] if 'from' in operation and operation['from'] else ''
+    to_masked = operation['to'][-4:] if 'to' in operation and operation['to'] else ''
 
     # Вывод операции на экран
     print(f'{date} {operation["description"]}')
-    print(f'{from_masked} -> {to_masked}')
+    if 'from' in operation and operation['from']:
+        print(f'{" ".join(operation["from"].split()[1:])} **** **** **** {from_masked}')
+    if 'to' in operation and operation['to']:
+        print(f'Счет **** **** **** {to_masked}')
     print(f'{operation["operationAmount"]["amount"]} {operation["operationAmount"]["currency"]["name"]}')
     print()
