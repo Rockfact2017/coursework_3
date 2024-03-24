@@ -1,99 +1,50 @@
 import pytest
-import json
-import datetime
-import io
-import contextlib
 
-from operations import (
-    load_operations,
-    filter_executed_operations,
-    sort_operations_by_date,
-    format_date,
-    mask_number,
-    print_operation,
-    main
-)
+from datetime import datetime
+
+from config import DIR_JSON
+from prg.utils import sorting_operations
 
 
-def test_load_operations():
-    with open('/Users/artem/PycharmProjects/coursework_3/prg/operations.json') as f:
-        operations = json.load(f)
-    assert isinstance(operations, list)
-    assert len(operations) > 0
+# Тест для функции get_correct_date
+def test_get_correct_date():
+    """Тест проверяет, что функция get_correct_date правильно преобразует дату в строку"""
+    # Проверяем, что функция возвращает правильную дату для даты в формате ISO 8601
+    assert get_correct_date("2023-03-15T12:34:56.789Z") == "15.03.2023"
 
 
-def test_filter_executed_operations():
-    operations = [
-        {'state': 'EXECUTED', 'date': '2023-03-08T12:34:56.789Z'},
-        {'state': 'NEW', 'date': '2023-03-07T11:22:33.456Z'},
-        {'state': 'EXECUTED', 'date': '2023-03-06T10:11:22.345Z'},
-    ]
-    executed_operations = filter_executed_operations(operations)
-    assert isinstance(executed_operations, list)
-    assert len(executed_operations) == 2
-    assert executed_operations[0]['date'] == '2023-03-08T12:34:56.789Z'
-    assert executed_operations[1]['date'] == '2023-03-06T10:11:22.345Z'
+# Тест для функции format_payment
+def test_format_payment_with_account_number():
+    """Тест проверяет, что функция format_payment правильно форматирует номер счета"""
+    # Проверяем, что функция возвращает правильный отформатированный номер счета
+    assert format_payment("Счет RU12345678901234567890") == "RU12345678901234567890**"
 
 
-def test_sort_operations_by_date():
-    operations = [
-        {'state': 'EXECUTED', 'date': '2023-03-08T12:34:56.789Z'},
-        {'state': 'EXECUTED', 'date': '2023-03-06T10:11:22.345Z'},
-        {'state': 'EXECUTED', 'date': '2023-03-07T11:22:33.456Z'},
-    ]
-    sorted_operations = sort_operations_by_date(operations)
-    assert isinstance(sorted_operations, list)
-    assert len(sorted_operations) == 3
-    assert sorted_operations[0]['date'] == '2023-03-08T12:34:56.789Z'
-    assert sorted_operations[1]['date'] == '2023-03-07T11:22:33.456Z'
-    assert sorted_operations[2]['date'] == '2023-03-06T10:11:22.345Z'
+def test_format_payment_with_card_number():
+    """Тест проверяет, что функция format_payment правильно форматирует номер карты"""
+    # Проверяем, что функция возвращает правильный отформатированный номер карты
+    assert format_payment("Карта 1234567890123456") == "1234 56** **** 1234"
 
 
-def test_format_date():
-    date = '2023-03-08T12:34:56.789Z'
-    formatted_date = format_date(date)
-    assert isinstance(formatted_date, str)
-    assert formatted_date == '08.03.2023'
+def test_format_payment_with_no_data():
+    """Тест проверяет, что функция format_payment возвращает правильное значение для пустых данных"""
+    # Проверяем, что функция возвращает "Данные отсутсвуют" для пустых данных
+    assert format_payment(None) == "Данные отсутсвуют"
 
 
-def test_mask_number():
-    number = '1234567890123456'
-    masked_number = mask_number(number)
-    assert isinstance(masked_number, str)
-    assert masked_number == '**** **** **** 6361'
+# Тест для функции operations_print
+def test_operations_print():
+    """Тест проверяет, что функция operations_print правильно выводит отсортированные операции"""
+    # Создаем ожидаемый вывод
+    expected_output = """
 
+15.03.2023 Перевод организации
+Счет RU12345678901234567890** -> Карта 1234 56** **** 1234
+1000.00 RUB"""
 
-def test_print_operation():
-    operation = {
-        'date': '2023-03-08T12:34:56.789Z',
-        'description': 'Перевод организации',
-        'from': '1234567890123456',
-        'to': '9876543210987654',
-        'operationAmount': {
-            'amount': '1000.00',
-            'currency': {
-                'name': 'RUB'
-            }
-        }
-    }
-    print_operation(operation)
-    # Проверка вывода операции на экран с помощью захвата вывода
-    captured = io.StringIO()
-    with contextlib.redirect_stdout(captured):
-        print_operation(operation)
-    output = captured.getvalue()
-    assert '08.03.2023 Перевод организации' in output
-    assert '**** **** **** 6361 -> **9638' in output
-    assert '1000.00 RUB' in output
+    # Перенаправляем вывод функции в буфер
+    with pytest.capture_stdout() as out:
+        operations_print()
 
-
-def test_main():
-    # Проверка вывода на экран последних 5 выполненных операций
-    with contextlib.redirect_stdout(io.StringIO()) as f:
-        main()
-    output = f.getvalue()
-    assert len(output.splitlines()) > 5
-
-
-if __name__ == '__main__':
-    pytest.main()
+    # Проверяем, что ожидаемый вывод содержится в выводе функции
+    assert expected_output in out.getvalue()

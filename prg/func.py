@@ -1,37 +1,49 @@
-import json
-import datetime
-import pathlib
+from datetime import datetime
 
-# Получение текущего рабочего каталога
-cwd = pathlib.Path.cwd()
+from config import DIR_JSON
+from prg.utils import sorting_operations
 
-# Загрузка данных из файла
-with open(cwd / 'operations.json') as f:
-    operations = json.load(f)
+def get_correct_date(new_date):
+    """Функция возвращает коректную дату в соответствии с ТЗ"""
+    # Преобразуем строку с датой в объект datetime
+    date_new = datetime.fromisoformat(new_date)
+    # Форматируем дату в соответствии с ТЗ
+    return datetime.strftime(date_new, "%d.%m.%Y")
 
-# Фильтрация выполненных операций
-executed_operations = []
-for operation in operations:
-    if 'state' in operation and operation['state'] == 'EXECUTED':
-        executed_operations.append(operation)
 
-# Сортировка операции по дате в порядке убывания
-executed_operations.sort(key=lambda operation: operation['date'], reverse=True)
+def format_payment(info_payment):
+    """Принимает счет и форматирует"""
+    if info_payment:
+        # Разбиваем строку с информацией о счете на список слов
+        account = info_payment.split()
+        # Если строка начинается с "Счет", то это счет отправителя
+        if info_payment.startswith("Счет"):
+            # Берем последние 4 символа номера счета
+            account_alpha = account.pop()
+            account_alpha = f"**{account_alpha[-4:]}"
+            # Добавляем отформатированный номер счета в список
+            account.append(account_alpha)
+        # Иначе это счет получателя
+        else:
+            # Берем первые 4 символа и последние 4 символа номера счета
+            account_alpha = account.pop()
+            account_alpha = f"{account_alpha[0:4]} {account_alpha[4:6]}** **** {account_alpha[-4:]}"
+            # Добавляем отформатированный номер счета в список
+            account.append(account_alpha)
+        # Возвращаем отформатированную строку с информацией о счете
+        return " ".join(account)
+    # Если информация о счете отсутствует, возвращаем сообщение об этом
+    return "Данные отсутсвуют"
 
-# Вывод на экран последние 5 операций
-for operation in executed_operations[:5]:
-    # Преобразование даты в формат ДД.ММ.ГГГГ
-    date = datetime.datetime.strptime(operation['date'], '%Y-%m-%dT%H:%M:%S.%f').strftime('%d.%m.%Y')
 
-    # Маскировка номера карты и счета
-    from_masked = operation['from'][-4:] if 'from' in operation and operation['from'] else ''
-    to_masked = operation['to'][-4:] if 'to' in operation and operation['to'] else ''
-
-    # Вывод операции на экран
-    print(f'{date} {operation["description"]}')
-    if 'from' in operation and operation['from']:
-        print(f'{" ".join(operation["from"].split()[1:])} **** **** **** {from_masked}')
-    if 'to' in operation and operation['to']:
-        print(f'Счет **** **** **** {to_masked}')
-    print(f'{operation["operationAmount"]["amount"]} {operation["operationAmount"]["currency"]["name"]}')
-    print()
+def operations_print():
+    # Получаем список отсортированных транзакций
+    sorted_operations = sorting_operations(DIR_JSON)
+    # Выводим первые 5 транзакций
+    for item in sorted_operations[:5]:
+        # Выводим дату транзакции
+        print(f'\n{get_correct_date(item["date"])} Перевод организации')
+        # Выводим отформатированные счета отправителя и получателя
+        print(f'{format_payment(item.get("from"))} -> {format_payment(item["to"])}')
+        # Выводим сумму и валюту транзакции
+        print(f'{item["operationAmount"]["amount"]} {item["operationAmount"]["currency"]["name"]}')

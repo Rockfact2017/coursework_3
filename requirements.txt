@@ -1,0 +1,8 @@
+colorama==0.4.6
+coverage==7.4.3
+iniconfig==2.0.0
+packaging==24.0
+pluggy==1.4.0
+pytest==8.1.1
+pytest-cov==4.1.0
+utils==1.0.2
